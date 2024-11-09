@@ -1,8 +1,25 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import re
 import json
+from sqlalchemy import create_engine, Column, Integer, String, exc
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
 
-db = [{"id": 123, "email": "votech@vo.com", "password": "1234"}]
+# Initialize SQLAlchemy
+engine = create_engine("sqlite:///users.db")
+Base = declarative_base()
+Session = sessionmaker(bind=engine)
+session = Session()
+
+
+class User(Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    email = Column(String, unique=True, nullable=False)
+    password = Column(String, nullable=False)
+
+
+Base.metadata.create_all(engine)
 
 
 class UserDoesntExistsError(Exception):
@@ -77,19 +94,20 @@ class RequestHandler(BaseHTTPRequestHandler):
 
 def create_user(**user):
     email = user["email"]
-
-    if any(u["email"] == email for u in db):
+    password = user["password"]
+    new_user = User(email=email, password=password)
+    try:
+        session.add(new_user)
+        session.commit()
+    except exc.IntegrityError:
+        session.rollback()
         raise UserAlreadyExistsError()
-
-    new_id = len(db) + 1
-    user["id"] = new_id
-    db.append(user)
 
 
 def get_user(user_id: int):
-    for user in db:
-        if user["id"] == user_id:
-            return user
+    user = session.query(User).filter_by(id=user_id).first()
+    if user:
+        return {"id": user.id, "email": user.email, "password": user.password}
     raise UserDoesntExistsError()
 
 
