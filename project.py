@@ -47,6 +47,12 @@ class RequestHandler(BaseHTTPRequestHandler):
         self.wfile.write("Not Found\n".encode("utf8"))
 
     def do_GET(self):
+        if self.path == "/users":
+            users = get_all_users()
+            response = json.dumps(users)
+            self.send_response(200)
+            self._handle_send_response(response)
+
         match_user = re.match(r"^/user/(\d+)$", self.path)
         if match_user:
             user_id = match_user.group(1)
@@ -109,6 +115,11 @@ def get_user(user_id: int):
     if user:
         return {"id": user.id, "email": user.email, "password": user.password}
     raise UserDoesntExistsError()
+
+
+def get_all_users():
+    users = session.query(User).all()
+    return [{"id": user.id, "email": user.email} for user in users]
 
 
 def run_server():
