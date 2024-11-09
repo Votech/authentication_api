@@ -47,14 +47,14 @@ class RequestHandler(BaseHTTPRequestHandler):
         self.wfile.write("Not Found\n".encode("utf8"))
 
     def do_GET(self):
+        # Get all users
         if self.path == "/users":
             users = get_all_users()
             response = json.dumps(users)
             self.send_response(200)
             self._handle_send_response(response)
-
-        match_user = re.match(r"^/user/(\d+)$", self.path)
-        if match_user:
+        # Get user by id
+        elif match_user := re.match(r"^/user/(\d+)$", self.path):
             user_id = match_user.group(1)
             try:
                 user = get_user(int(user_id))
