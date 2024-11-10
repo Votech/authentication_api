@@ -37,19 +37,19 @@ class UserDoesntExistsError(Exception):
 
 
 class UserAlreadyExistsError(Exception):
-    def __init__(self, message=""):
+    def __init__(self, message="User already exists.\n"):
         self.message = message
         super().__init__(self.message)
 
 
 class AuthenticationError(Exception):
-    def __init__(self, message="Incorrect email or password"):
+    def __init__(self, message="Incorrect email or password\n"):
         self.message = message
         super().__init__(self.message)
 
 
 class InvalidTokenError(Exception):
-    def __init__(self, message="Invalid token"):
+    def __init__(self, message="Invalid token\n"):
         self.message = message
         super().__init__(self.message)
 
@@ -122,8 +122,8 @@ class RequestHandler(BaseHTTPRequestHandler):
             except KeyError:
                 response = "Invalid data.\n"
                 self.send_response(400)
-            except UserAlreadyExistsError:
-                response = "User already exists.\n"
+            except UserAlreadyExistsError as e:
+                response = e.message
                 self.send_response(409)
             except json.JSONDecodeError:
                 response = "Invalid JSON format.\n"
