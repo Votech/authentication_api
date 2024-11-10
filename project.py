@@ -6,8 +6,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import jwt
 from sqlalchemy import create_engine, Column, Integer, String, exc
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, declarative_base
 
 ALGORITHM = "HS256"
 
