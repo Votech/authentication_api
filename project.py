@@ -1,9 +1,10 @@
-from http.server import BaseHTTPRequestHandler, HTTPServer
-import re
 import json
-import jwt
-import time
+import re
 import secrets
+import time
+from http.server import BaseHTTPRequestHandler, HTTPServer
+
+import jwt
 from sqlalchemy import create_engine, Column, Integer, String, exc
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
