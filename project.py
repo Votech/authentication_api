@@ -32,28 +32,34 @@ class User(Base):
 Base.metadata.create_all(engine)
 
 
-class UserDoesntExistsError(Exception):
-    def __init__(self, message=""):
+class APIError(Exception):
+    status_code = 400
+
+    def __init__(self, message, status_code=None):
+        super().__init__(message)
+        if status_code:
+            self.status_code = status_code
         self.message = message
-        super().__init__(self.message)
 
 
-class UserAlreadyExistsError(Exception):
-    def __init__(self, message="User already exists."):
-        self.message = message
-        super().__init__(self.message)
+class UserNotFoundError(APIError):
+    def __init__(self):
+        super().__init__("User not found", status_code=404)
 
 
-class AuthenticationError(Exception):
-    def __init__(self, message="Incorrect email or password."):
-        self.message = message
-        super().__init__(self.message)
+class UserAlreadyExistsError(APIError):
+    def __init__(self):
+        super().__init__("User already exists", status_code=409)
 
 
-class InvalidTokenError(Exception):
-    def __init__(self, message="Invalid token."):
-        self.message = message
-        super().__init__(self.message)
+class AuthenticationError(APIError):
+    def __init__(self):
+        super().__init__("Incorrect email or password", status_code=401)
+
+
+class InvalidTokenError(APIError):
+    def __init__(self, message="Invalid token"):
+        super().__init__(message, status_code=401)
 
 
 class RequestHandler(BaseHTTPRequestHandler):
@@ -88,7 +94,7 @@ class RequestHandler(BaseHTTPRequestHandler):
             try:
                 user = get_user(int(user_id))
                 self._send_response(json.dumps(user))
-            except UserDoesntExistsError as e:
+            except UserNotFoundError as e:
                 self._send_response(json.dumps({"error": str(e)}), 404)
         else:
             self._send_response(json.dumps({"error": "Not Found"}), 404)
@@ -134,7 +140,7 @@ def get_user(user_id: int):
     user = session.query(User).filter_by(id=user_id).first()
     if user:
         return {"id": user.id, "email": user.email, "password": user.password}
-    raise UserDoesntExistsError()
+    raise UserNotFoundError()
 
 
 def create_user(email: str, password: str):
