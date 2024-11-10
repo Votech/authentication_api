@@ -4,7 +4,7 @@
 
 #### Description
 
-This is my final project for CS50P course. It's a simple API server that provides authentication and token-based authorization JWT (JSON Web Token). It is buid with Python, utilizing several libraries, including sqlalchemy for data base management. pywjt for generating and validating tokens, and http.sever that comes from Python as a simple solution for handling HTTP requests. The server supports the creation of user accounts, authentication, and token validation.
+This is my final project for the CS50P course. It's a simple API server that provides authentication and token-based authorization JWT (JSON Web Token). It is built with Python, utilizing several libraries, including sqlalchemy for database management. pywjt for generating and validating tokens, and http.server that comes from Python as a simple solution for handling HTTP requests. The server supports the creation of user accounts, authentication, and token validation.
 
 ### Features
 
@@ -16,14 +16,14 @@ This is my final project for CS50P course. It's a simple API server that provide
 ### Architecture
 
 1. **SQLAlchemy**: Manages interactions with an SQLite database for storing user information.
-2. SQLLite: Little databse that comes with Python. Its simplicity, lightweight and the fact that whole data base is just a one file makes it ideal choice for this kind of side project.
+2. SQLite is a little database that comes with Python. Its simplicity, lightweight nature, and the fact that the whole database is just a one file make it an ideal choice for this kind of side project.
 3. **JWT**: Used for issuing authentication tokens to authenticated users. The token includes the user’s email and an expiration time.
 4. **HTTP Server**: A basic HTTP server using Python’s `http.server` module that handles incoming HTTP requests.
 5. **Error Handling**: Custom error handling for cases such as user not found, incorrect credentials, and invalid or expired tokens.
 
 ### File Structure
 
-- **`project.py`**: Main server code that initilizes data base, defines the HTTP request handling logic, user authentication, and token generation.
+- **`project.py`**: Main server code that initializes the database, defines the HTTP request handling logic, user authentication, and token generation.
 - test_project.py: Unit tests.
 - **`users.db`**: SQLite database that stores user information (created automatically).
 - **`README.md`**: Documentation of the project.
@@ -73,6 +73,6 @@ pytest test_project.py
 
 ### Future Improvements
 
-- Implement passwod hashing and salting for better security.
+- Implement password hashing and salting for better security.
 - Add user roles (e.g., admin, user) for more granular access control.
-- Support for additional endpoints like user password update and deletion
+- Support for additional endpoints like user password update and deletion.
