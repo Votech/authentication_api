@@ -62,12 +62,11 @@ class InvalidTokenError(APIError):
 
 
 class RequestHandler(BaseHTTPRequestHandler):
-    def _send_response(
-        self, response, status_code=200, content_type="application/json"
-    ):
+    def _send_response(self, data, status_code=200):
         self.send_response(status_code)
-        self.send_header("Content-type", content_type)
+        self.send_header("Content-type", "application/json")
         self.end_headers()
+        response = json.dumps(data) if not isinstance(data, str) else data
         self.wfile.write(response.encode("utf-8"))
 
     def _validate_token(self):
@@ -82,21 +81,21 @@ class RequestHandler(BaseHTTPRequestHandler):
         try:
             self._validate_token()
         except InvalidTokenError as e:
-            self._send_response(json.dumps({"error": str(e)}), 401)
+            self._send_response({"error": str(e)}, 401)
             return
 
         if self.path == "/users":
             users = get_all_users()
-            self._send_response(json.dumps(users))
+            self._send_response(users)
         elif match_user := re.match(r"^/user/(\d+)$", self.path):
             user_id = match_user.group(1)
             try:
                 user = get_user(int(user_id))
-                self._send_response(json.dumps(user))
+                self._send_response(user)
             except UserNotFoundError as e:
-                self._send_response(json.dumps({"error": str(e)}), 404)
+                self._send_response({"error": str(e)}, 404)
         else:
-            self._send_response(json.dumps({"error": "Not Found"}), 404)
+            self._send_response({"error": "Not Found"}, 404)
 
     def do_POST(self):
         content_length = int(self.headers.get("Content-Length", 0))
@@ -104,30 +103,28 @@ class RequestHandler(BaseHTTPRequestHandler):
         try:
             data = json.loads(post_data)
         except json.JSONDecodeError:
-            self._send_response(json.dumps({"error": "Invalid JSON format"}), 400)
+            self._send_response({"error": "Invalid JSON format"}, 400)
             return
 
         if self.path == "/user":
             try:
                 create_user(email=data["email"], password=data["password"])
-                self._send_response(
-                    json.dumps({"message": "User created successfully"}), 201
-                )
+                self._send_response({"message": "User created successfully"}, 201)
             except KeyError:
-                self._send_response(json.dumps({"error": "Invalid data"}), 400)
+                self._send_response({"error": "Invalid data"}, 400)
             except UserAlreadyExistsError as e:
-                self._send_response(json.dumps({"error": str(e)}), 409)
+                self._send_response({"error": str(e)}, 409)
         elif self.path == "/token":
             try:
                 user = authenticate_user(email=data["email"], password=data["password"])
                 token = generate_token(user.email.value())
-                self._send_response(json.dumps({"token": token}))
+                self._send_response({"token": token})
             except KeyError:
-                self._send_response(json.dumps({"error": "Invalid data"}), 400)
+                self._send_response({"error": "Invalid data"}, 400)
             except AuthenticationError as e:
-                self._send_response(json.dumps({"error": str(e)}), 401)
+                self._send_response({"error": str(e)}, 401)
         else:
-            self._send_response(json.dumps({"error": "Not Found"}), 404)
+            self._send_response({"error": "Not Found"}, 404)
 
 
 def get_all_users():
