@@ -55,16 +55,13 @@ class InvalidTokenError(Exception):
 
 
 class RequestHandler(BaseHTTPRequestHandler):
-    def _handle_send_response(self, response):
-        self.send_header("Content-type", "text/plain; charset=utf-8")
+    def _send_response(
+        self, response, status_code=200, content_type="application/json"
+    ):
+        self.send_response(status_code)
+        self.send_header("Content-type", content_type)
         self.end_headers()
-        self.wfile.write(response.encode("utf8"))
-
-    def _handle_non_matching_paths(self):
-        self.send_response(404)
-        self.send_header("Content-type", "text/plain")
-        self.end_headers()
-        self.wfile.write("Not Found.".encode("utf8"))
+        self.wfile.write(response.encode("utf-8"))
 
     def _validate_token(self):
         auth_header = self.headers.get("Authorization")
@@ -75,84 +72,55 @@ class RequestHandler(BaseHTTPRequestHandler):
         return email
 
     def do_GET(self):
-        # Validate token
         try:
             self._validate_token()
         except InvalidTokenError as e:
-            self.send_response(401)
-            self._handle_send_response(e.message)
+            self._send_response(json.dumps({"error": str(e)}), 401)
             return
 
-        # Get all users
         if self.path == "/users":
             users = get_all_users()
-            response = json.dumps(users)
-            self.send_response(200)
-            self._handle_send_response(response)
-        # Get user by id
+            self._send_response(json.dumps(users))
         elif match_user := re.match(r"^/user/(\d+)$", self.path):
             user_id = match_user.group(1)
             try:
                 user = get_user(int(user_id))
-                response = f"User: {user}, id: {user_id}"
-                self.send_response(200)
-            except UserDoesntExistsError:
-                response = f"User with id: {user_id} not found."
-                self.send_response(404)
-            self._handle_send_response(response)
+                self._send_response(json.dumps(user))
+            except UserDoesntExistsError as e:
+                self._send_response(json.dumps({"error": str(e)}), 404)
         else:
-            # Handle non-matching paths
-            self._handle_non_matching_paths()
+            self._send_response(json.dumps({"error": "Not Found"}), 404)
 
     def do_POST(self):
-        # Handle POST request to create a new user
-        if self.path == "/user":
-            # Get the content length to read the exact amount of data
-            # Otherwise the server will not know how much data to read
-            # Witch results in infinite wait for more data
-            content_length = int(self.headers.get("Content-Length", 0))
-            post_data = self.rfile.read(content_length)
-            try:
-                data = json.loads(post_data)
-                email = data["email"]
-                password = data["password"]
-                create_user(email=email, password=password)
-                response = f"User {email} created sucessfully."
-                self.send_response(201)
-            except KeyError:
-                response = "Invalid data."
-                self.send_response(400)
-            except UserAlreadyExistsError as e:
-                response = e.message
-                self.send_response(409)
-            except json.JSONDecodeError:
-                response = "Invalid JSON format."
-                self.send_response(400)
+        content_length = int(self.headers.get("Content-Length", 0))
+        post_data = self.rfile.read(content_length)
+        try:
+            data = json.loads(post_data)
+        except json.JSONDecodeError:
+            self._send_response(json.dumps({"error": "Invalid JSON format"}), 400)
+            return
 
-            self._handle_send_response(response)
-        # Handle POST request to get access token
-        if self.path == "/token":
-            content_length = int(self.headers.get("Content-Length", 0))
-            post_data = self.rfile.read(content_length)
+        if self.path == "/user":
             try:
-                data = json.loads(post_data)
-                email = data["email"]
-                password = data["password"]
-                if user := authenticate_user(email=email, password=password):
-                    token = generate_token(user.email)
-                    response = json.dumps({"token": token})
-                    self.send_response(200)
-                    self._handle_send_response(response)
+                create_user(email=data["email"], password=data["password"])
+                self._send_response(
+                    json.dumps({"message": "User created successfully"}), 201
+                )
             except KeyError:
-                response = "Invalid data."
-                self.send_response(400)
-            except json.JSONDecodeError:
-                response = "Invalid JSON format."
-                self.send_response(400)
+                self._send_response(json.dumps({"error": "Invalid data"}), 400)
+            except UserAlreadyExistsError as e:
+                self._send_response(json.dumps({"error": str(e)}), 409)
+        elif self.path == "/token":
+            try:
+                user = authenticate_user(email=data["email"], password=data["password"])
+                token = generate_token(user.email)
+                self._send_response(json.dumps({"token": token}))
+            except KeyError:
+                self._send_response(json.dumps({"error": "Invalid data"}), 400)
             except AuthenticationError as e:
-                response = e.message
+                self._send_response(json.dumps({"error": str(e)}), 401)
         else:
-            self._handle_non_matching_paths()
+            self._send_response(json.dumps({"error": "Not Found"}), 404)
 
 
 def get_all_users():
