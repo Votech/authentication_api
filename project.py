@@ -117,7 +117,7 @@ class RequestHandler(BaseHTTPRequestHandler):
         elif self.path == "/token":
             try:
                 user = authenticate_user(email=data["email"], password=data["password"])
-                token = generate_token(user.email.value())
+                token = generate_token(str(user.email))
                 self._send_response({"token": token})
             except KeyError:
                 self._send_response({"error": "Invalid data"}, 400)
