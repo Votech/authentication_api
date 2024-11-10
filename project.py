@@ -37,19 +37,19 @@ class UserDoesntExistsError(Exception):
 
 
 class UserAlreadyExistsError(Exception):
-    def __init__(self, message="User already exists.\n"):
+    def __init__(self, message="User already exists."):
         self.message = message
         super().__init__(self.message)
 
 
 class AuthenticationError(Exception):
-    def __init__(self, message="Incorrect email or password\n"):
+    def __init__(self, message="Incorrect email or password."):
         self.message = message
         super().__init__(self.message)
 
 
 class InvalidTokenError(Exception):
-    def __init__(self, message="Invalid token\n"):
+    def __init__(self, message="Invalid token."):
         self.message = message
         super().__init__(self.message)
 
@@ -64,7 +64,7 @@ class RequestHandler(BaseHTTPRequestHandler):
         self.send_response(404)
         self.send_header("Content-type", "text/plain")
         self.end_headers()
-        self.wfile.write("Not Found\n".encode("utf8"))
+        self.wfile.write("Not Found.".encode("utf8"))
 
     def _validate_token(self):
         auth_header = self.headers.get("Authorization")
@@ -94,10 +94,10 @@ class RequestHandler(BaseHTTPRequestHandler):
             user_id = match_user.group(1)
             try:
                 user = get_user(int(user_id))
-                response = f"User: {user}, id: {user_id}\n"
+                response = f"User: {user}, id: {user_id}"
                 self.send_response(200)
             except UserDoesntExistsError:
-                response = f"User with id: {user_id} not found\n"
+                response = f"User with id: {user_id} not found."
                 self.send_response(404)
             self._handle_send_response(response)
         else:
@@ -117,16 +117,16 @@ class RequestHandler(BaseHTTPRequestHandler):
                 email = data["email"]
                 password = data["password"]
                 create_user(email=email, password=password)
-                response = f"User {email} created sucessfully.\n"
+                response = f"User {email} created sucessfully."
                 self.send_response(201)
             except KeyError:
-                response = "Invalid data.\n"
+                response = "Invalid data."
                 self.send_response(400)
             except UserAlreadyExistsError as e:
                 response = e.message
                 self.send_response(409)
             except json.JSONDecodeError:
-                response = "Invalid JSON format.\n"
+                response = "Invalid JSON format."
                 self.send_response(400)
 
             self._handle_send_response(response)
@@ -144,10 +144,10 @@ class RequestHandler(BaseHTTPRequestHandler):
                     self.send_response(200)
                     self._handle_send_response(response)
             except KeyError:
-                response = "Invalid data.\n"
+                response = "Invalid data."
                 self.send_response(400)
             except json.JSONDecodeError:
-                response = "Invalid JSON format.\n"
+                response = "Invalid JSON format."
                 self.send_response(400)
             except AuthenticationError as e:
                 response = e.message
