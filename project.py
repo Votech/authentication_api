@@ -192,9 +192,10 @@ def authenticate_user(**user):
 
 
 def generate_token(email):
+    TOKEN_EXPIRES_IN_SECONDS = 10 * 60
     payload = {
         "email": email,
-        "exp": time.time() + 300,  # Token expires in 5 minutes
+        "exp": time.time() + TOKEN_EXPIRES_IN_SECONDS,
     }
     token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
     return token
