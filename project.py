@@ -9,6 +9,8 @@ from sqlalchemy import create_engine, Column, Integer, String, exc
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
+ALGORITHM = "HS256"
+
 # Generate a 256-bit (32-byte) secret key
 SECRET_KEY = secrets.token_hex(32)
 print(f"Generated secret key: {SECRET_KEY}")
@@ -158,13 +160,13 @@ def generate_token(email: str):
         "email": email,
         "exp": time.time() + TOKEN_EXPIRES_IN_SECONDS,
     }
-    token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
+    token = jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
     return token
 
 
 def decode_token(token: str):
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload["email"], payload["exp"]
     except jwt.ExpiredSignatureError:
         raise InvalidTokenError("Token has expired")
