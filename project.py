@@ -121,6 +121,8 @@ class RequestHandler(BaseHTTPRequestHandler):
                 self._send_response({"token": token})
             except KeyError:
                 self._send_response({"error": "Invalid data"}, 400)
+            except UserNotFoundError as e:
+                self._send_response({"error": str(e)}, 404)
             except AuthenticationError as e:
                 self._send_response({"error": str(e)}, 401)
         else:
@@ -150,10 +152,12 @@ def create_user(email: str, password: str):
 
 
 def authenticate_user(email: str, password: str):
-    if user := session.query(User).filter_by(email=email, password=password).first():
-        return user
-    else:
+    user = session.query(User).filter_by(email=email).first()
+    if user is None:
+        raise UserNotFoundError()
+    if str(user.password) != password:
         raise AuthenticationError()
+    return user
 
 
 def generate_token(email: str):
