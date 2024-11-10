@@ -113,7 +113,7 @@ class RequestHandler(BaseHTTPRequestHandler):
         elif self.path == "/token":
             try:
                 user = authenticate_user(email=data["email"], password=data["password"])
-                token = generate_token(user.email)
+                token = generate_token(user.email.value())
                 self._send_response(json.dumps({"token": token}))
             except KeyError:
                 self._send_response(json.dumps({"error": "Invalid data"}), 400)
@@ -135,9 +135,7 @@ def get_user(user_id: int):
     raise UserDoesntExistsError()
 
 
-def create_user(**user):
-    email = user["email"]
-    password = user["password"]
+def create_user(email: str, password: str):
     new_user = User(email=email, password=password)
     try:
         session.add(new_user)
@@ -147,19 +145,14 @@ def create_user(**user):
         raise UserAlreadyExistsError()
 
 
-def authenticate_user(**user):
-    email = user["email"]
-    password = user["password"]
-    if user := session.query(User).filter_by(email=email).first():
-        if user.password == password:
-            return user
-        else:
-            raise AuthenticationError()
+def authenticate_user(email: str, password: str):
+    if user := session.query(User).filter_by(email=email, password=password).first():
+        return user
     else:
         raise AuthenticationError()
 
 
-def generate_token(email):
+def generate_token(email: str):
     TOKEN_EXPIRES_IN_SECONDS = 10 * 60
     payload = {
         "email": email,
@@ -169,7 +162,7 @@ def generate_token(email):
     return token
 
 
-def decode_token(token):
+def decode_token(token: str):
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
         return payload["email"], payload["exp"]
