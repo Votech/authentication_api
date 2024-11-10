@@ -139,7 +139,7 @@ def get_all_users():
 def get_user(user_id: int):
     user = session.query(User).filter_by(id=user_id).first()
     if user:
-        return {"id": user.id, "email": user.email, "password": user.password}
+        return {"id": user.id, "email": user.email}
     raise UserNotFoundError()
 
 
