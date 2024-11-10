@@ -1,7 +1,5 @@
 # JWT Authentication API Server
 
-#### Video Demo: <https://youtu.be/X-EkqcJ6SKY>
-
 #### Description
 
 This is my final project for the CS50P course. It's a simple API server that provides authentication and token-based authorization JWT (JSON Web Token). It is built with Python, utilizing several libraries, including sqlalchemy for database management. pywjt for generating and validating tokens, and http.server that comes from Python as a simple solution for handling HTTP requests. The server supports the creation of user accounts, authentication, and token validation.
@@ -76,3 +74,5 @@ pytest test_project.py
 - Implement password hashing and salting for better security.
 - Add user roles (e.g., admin, user) for more granular access control.
 - Support for additional endpoints like user password update and deletion.
+
+#### Video Demo: <https://youtu.be/X-EkqcJ6SKY>
