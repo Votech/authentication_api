@@ -1,9 +1,16 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import re
 import json
+import jwt
+import time
+import secrets
 from sqlalchemy import create_engine, Column, Integer, String, exc
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+
+# Generate a 256-bit (32-byte) secret key
+SECRET_KEY = secrets.token_hex(32)
+print(f"Generated secret key: {SECRET_KEY}")
 
 # Initialize SQLAlchemy
 engine = create_engine("sqlite:///users.db")
@@ -34,6 +41,18 @@ class UserAlreadyExistsError(Exception):
         super().__init__(self.message)
 
 
+class AuthenticationError(Exception):
+    def __init__(self, message="Incorrect email or password"):
+        self.message = message
+        super().__init__(self.message)
+
+
+class InvalidTokenError(Exception):
+    def __init__(self, message="Invalid token"):
+        self.message = message
+        super().__init__(self.message)
+
+
 class RequestHandler(BaseHTTPRequestHandler):
     def _handle_send_response(self, response):
         self.send_header("Content-type", "text/plain; charset=utf-8")
@@ -46,7 +65,23 @@ class RequestHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write("Not Found\n".encode("utf8"))
 
+    def _validate_token(self):
+        auth_header = self.headers.get("Authorization")
+        if not auth_header or not auth_header.startswith("Bearer "):
+            raise InvalidTokenError("Missing or invalid token")
+        token = auth_header.split(" ")[1]
+        email, _ = decode_token(token)
+        return email
+
     def do_GET(self):
+        # Validate token
+        try:
+            self._validate_token()
+        except InvalidTokenError as e:
+            self.send_response(401)
+            self._handle_send_response(e.message)
+            return
+
         # Get all users
         if self.path == "/users":
             users = get_all_users()
@@ -94,8 +129,41 @@ class RequestHandler(BaseHTTPRequestHandler):
                 self.send_response(400)
 
             self._handle_send_response(response)
+        # Handle POST request to get access token
+        if self.path == "/token":
+            content_length = int(self.headers.get("Content-Length", 0))
+            post_data = self.rfile.read(content_length)
+            try:
+                data = json.loads(post_data)
+                email = data["email"]
+                password = data["password"]
+                if user := authenticate_user(email=email, password=password):
+                    token = generate_token(user.email)
+                    response = json.dumps({"token": token})
+                    self.send_response(200)
+                    self._handle_send_response(response)
+            except KeyError:
+                response = "Invalid data.\n"
+                self.send_response(400)
+            except json.JSONDecodeError:
+                response = "Invalid JSON format.\n"
+                self.send_response(400)
+            except AuthenticationError as e:
+                response = e.message
         else:
             self._handle_non_matching_paths()
+
+
+def get_all_users():
+    users = session.query(User).all()
+    return [{"id": user.id, "email": user.email} for user in users]
+
+
+def get_user(user_id: int):
+    user = session.query(User).filter_by(id=user_id).first()
+    if user:
+        return {"id": user.id, "email": user.email, "password": user.password}
+    raise UserDoesntExistsError()
 
 
 def create_user(**user):
@@ -110,16 +178,35 @@ def create_user(**user):
         raise UserAlreadyExistsError()
 
 
-def get_user(user_id: int):
-    user = session.query(User).filter_by(id=user_id).first()
-    if user:
-        return {"id": user.id, "email": user.email, "password": user.password}
-    raise UserDoesntExistsError()
+def authenticate_user(**user):
+    email = user["email"]
+    password = user["password"]
+    if user := session.query(User).filter_by(email=email).first():
+        if user.password == password:
+            return user
+        else:
+            raise AuthenticationError()
+    else:
+        raise AuthenticationError()
 
 
-def get_all_users():
-    users = session.query(User).all()
-    return [{"id": user.id, "email": user.email} for user in users]
+def generate_token(email):
+    payload = {
+        "email": email,
+        "exp": time.time() + 300,  # Token expires in 5 minutes
+    }
+    token = jwt.encode(payload, SECRET_KEY, algorithm="HS256")
+    return token
+
+
+def decode_token(token):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=["HS256"])
+        return payload["email"], payload["exp"]
+    except jwt.ExpiredSignatureError:
+        raise InvalidTokenError("Token has expired")
+    except jwt.InvalidTokenError:
+        raise InvalidTokenError("Invalid token")
 
 
 def run_server():
